@@ -1,0 +1,114 @@
+# ── Python ───────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+MANIFEST
+
+# ── Virtual Environments ─────────────────────────
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+
+# ── PyCharm ──────────────────────────────────────
+.idea/
+*.iml
+*.iws
+*.ipr
+.idea_modules/
+
+# ── VS Code ───────────────────────────────────────
+.vscode/
+*.code-workspace
+
+# ── PlatformIO ────────────────────────────────────
+esp32/platformio_project/.pio/
+esp32/platformio_project/.pioenvs/
+esp32/platformio_project/.clang_complete
+esp32/platformio_project/.gcc-flags.json
+
+# ── YOLO Models (large binary files) ─────────────
+*.pt
+*.onnx
+*.engine
+*.trt
+runs/
+
+# ── ClassPulse runtime data ───────────────────────
+sessions/
+reports/
+snapshots/
+
+# ── SQLite database ───────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Logs ──────────────────────────────────────────
+*.log
+logs/
+
+# ── OS files ──────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── Jupyter Notebooks ─────────────────────────────
+.ipynb_checkpoints
+*.ipynb
+
+# ── Coverage / Testing ────────────────────────────
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# ── Environment variables / secrets ───────────────
+.env
+.env.local
+.env.*.local
+secrets.py
+config_local.py
+
+# ── Temporary files ───────────────────────────────
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+
+# ── Node (if any frontend tooling added later) ────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

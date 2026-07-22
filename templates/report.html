@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ClassPulse — Session Report</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    body { padding-bottom: 40px; }
+    .report-wrap { max-width: 940px; margin: 0 auto; padding: 28px 20px; }
+
+    .report-title { font-size: 26px; font-weight: 800; color: var(--accent); }
+    .report-sub   { color: var(--text-2); margin-top: 5px; font-size: 13px; }
+
+    .action-row   { display: flex; gap: 8px; margin-top: 18px; }
+
+    .kpi-grid {
+      display:               grid;
+      grid-template-columns: repeat(4,1fr);
+      gap:                   12px;
+      margin:                24px 0;
+    }
+    .kpi-card {
+      background:    var(--bg-card);
+      border:        1px solid var(--border);
+      border-radius: var(--radius);
+      padding:       18px;
+      text-align:    center;
+    }
+    .kpi-value { font-size: 34px; font-weight: 800; }
+    .kpi-label { font-size: 11px; color: var(--text-2); text-transform: uppercase;
+                 letter-spacing: 1px; margin-top: 4px; }
+
+    .section-title {
+      font-size: 11px; color: var(--text-2);
+      text-transform: uppercase; letter-spacing: 1.2px;
+      margin: 22px 0 10px;
+    }
+
+    .report-card {
+      background:    var(--bg-card);
+      border:        1px solid var(--border);
+      border-radius: var(--radius);
+      padding:       18px;
+    }
+
+    .alert-table {
+      width: 100%; border-collapse: collapse; font-size: 12.5px;
+    }
+    .alert-table th {
+      text-align: left; padding: 8px 10px;
+      color: var(--text-2); font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    .alert-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    .alert-table tr:last-child td { border-bottom: none; }
+    .level-warning { color: var(--yellow); }
+    .level-danger  { color: var(--red); }
+    .no-data { color: var(--text-3); text-align: center; padding: 20px; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="brand">Class<em>Pulse</em></div>
+  <span style="color:var(--text-2);font-size:13px">Session Report</span>
+</nav>
+
+<div class="report-wrap">
+
+  <div class="report-title">📊 {{ session.get('name','Session') }}</div>
+  <div class="report-sub">
+    Started: {{ (session.get('start_time') or '')[:16] | replace('T',' ') }}
+    {% if session.get('end_time') %}
+      &nbsp;·&nbsp;
+      Ended: {{ session['end_time'][:16] | replace('T',' ') }}
+    {% endif %}
+  </div>
+
+  <div class="action-row">
+    <button class="btn" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-1)"
+            onclick="history.back()">← Back</button>
+    <a href="/api/export/{{ session.get('id',0) }}" style="text-decoration:none">
+      <button class="btn btn-start">⬇ Export CSV</button>
+    </a>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-value" style="color:var(--accent)">
+        {{ '%.1f'|format(session.get('avg_attention') or 0) }}%
+      </div>
+      <div class="kpi-label">Avg Attention</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-value" style="color:var(--text-1)">
+        {{ logs|length }}
+      </div>
+      <div class="kpi-label">Data Points</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-value" style="color:var(--green)">
+        {% if logs %}
+          {% set att_pct = (logs | selectattr('class_attention','ge',70) | list | length / logs|length * 100) | int %}
+          {{ att_pct }}%
+        {% else %}—{% endif %}
+      </div>
+      <div class="kpi-label">Time Attentive</div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-value" style="color:var(--red)">
+        {% if logs %}
+          {% set low_pct = (logs | selectattr('class_attention','lt',45) | list | length / logs|length * 100) | int %}
+          {{ low_pct }}%
+        {% else %}—{% endif %}
+      </div>
+      <div class="kpi-label">Time Struggling</div>
+    </div>
+  </div>
+
+  <div class="section-title">Attention Timeline</div>
+  <div class="report-card">
+    <canvas id="report-chart" height="70"></canvas>
+  </div>
+
+  <div class="section-title">Average State Distribution</div>
+  <div class="report-card" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:center">
+    <canvas id="donut-chart" height="160"></canvas>
+    <div>
+      {% if logs %}
+        {% set n = logs|length %}
+        {% set avg_att = (logs | map(attribute='attentive')  | sum / n) | round(1) %}
+        {% set avg_dis = (logs | map(attribute='distracted') | sum / n) | round(1) %}
+        {% set avg_slp = (logs | map(attribute='sleeping')   | sum / n) | round(1) %}
+        {% set avg_phn = (logs | map(attribute='phone')      | sum / n) | round(1) %}
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:10px;height:10px;border-radius:50%;background:#10b981;flex-shrink:0"></span>
+            Attentive &nbsp;<strong>{{ avg_att }}</strong> avg students
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;flex-shrink:0"></span>
+            Distracted &nbsp;<strong>{{ avg_dis }}</strong> avg students
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:10px;height:10px;border-radius:50%;background:#ef4444;flex-shrink:0"></span>
+            Sleeping &nbsp;<strong>{{ avg_slp }}</strong> avg students
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:10px;height:10px;border-radius:50%;background:#f97316;flex-shrink:0"></span>
+            Phone &nbsp;<strong>{{ avg_phn }}</strong> avg students
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="section-title">Alerts ({{ alerts|length }})</div>
+  <div class="report-card">
+    {% if alerts %}
+      <table class="alert-table">
+        <tr><th>Time</th><th>Level</th><th>Message</th></tr>
+        {% for a in alerts %}
+        <tr>
+          <td style="font-family:monospace;color:var(--text-2)">
+            {{ (a.timestamp or '')[:19] | replace('T',' ') }}
+          </td>
+          <td class="level-{{ a.level }}">{{ (a.level or 'warning')|upper }}</td>
+          <td>{{ a.message }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    {% else %}
+      <div class="no-data">No alerts were generated during this session ✓</div>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+
+const logs = {{ logs | tojson }};
+
+
+const lineCtx = document.getElementById('report-chart').getContext('2d');
+new Chart(lineCtx, {
+  type: 'line',
+  data: {
+    labels:   logs.map(l => (l.timestamp || '').slice(11,19)),
+    datasets: [
+      {
+        label:           'Class Attention %',
+        data:            logs.map(l => l.class_attention),
+        borderColor:     '#00d4ff',
+        backgroundColor: 'rgba(0,212,255,0.07)',
+        borderWidth:     2,
+        pointRadius:     0,
+        fill:            true,
+        tension:         0.4,
+      },
+      {
+        label:       'Alert threshold (60%)',
+        data:        logs.map(() => 60),
+        borderColor: '#ef4444',
+        borderWidth: 1,
+        borderDash:  [5,5],
+        pointRadius: 0,
+        fill:        false,
+      },
+    ],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 0 },
+    scales: {
+      x: {
+        grid:  { color: 'rgba(255,255,255,0.04)' },
+        ticks: { color:'#7777a0', font:{size:10}, maxTicksLimit:12 },
+      },
+      y: {
+        min:0, max:100,
+        grid:  { color: 'rgba(255,255,255,0.04)' },
+        ticks: { color:'#7777a0', font:{size:10}, callback: v => v+'%' },
+      },
+    },
+    plugins: {
+      legend: { labels: { color:'#7777a0', font:{size:11}, boxWidth:12 } },
+    },
+  },
+});
+
+if (logs.length > 0) {
+  const n       = logs.length;
+  const avgAtt  = logs.reduce((s,l) => s + (l.attentive  || 0), 0) / n;
+  const avgDis  = logs.reduce((s,l) => s + (l.distracted || 0), 0) / n;
+  const avgSlp  = logs.reduce((s,l) => s + (l.sleeping   || 0), 0) / n;
+  const avgPhn  = logs.reduce((s,l) => s + (l.phone      || 0), 0) / n;
+
+  const doCtx = document.getElementById('donut-chart').getContext('2d');
+  new Chart(doCtx, {
+    type: 'doughnut',
+    data: {
+      labels:   ['Attentive','Distracted','Sleeping','Phone'],
+      datasets: [{
+        data:            [avgAtt, avgDis, avgSlp, avgPhn],
+        backgroundColor: ['#10b981','#f59e0b','#ef4444','#f97316'],
+        borderWidth:     0,
+        hoverOffset:     6,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(13,13,26,0.9)',
+          titleColor: '#ededf8',
+          bodyColor:  '#7777a0',
+          callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed.toFixed(1)} avg` },
+        },
+      },
+    },
+  });
+}
+</script>
+</body>
+</html>

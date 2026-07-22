@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ClassPulse — Classroom Attention Monitor</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="brand">Class<em>Pulse</em></div>
+
+  <input id="session-name"
+         type="text"
+         placeholder="Session name (e.g. CSE-101 Week 5)">
+
+  <button class="btn btn-start" id="btn-start">▶ Start</button>
+  <button class="btn btn-end"   id="btn-end">■ End</button>
+  <button class="btn btn-report" id="btn-report" style="display:none">📄 Report</button>
+
+  <span class="session-badge" id="session-badge">No active session</span>
+
+  <span class="mqtt-dot" id="mqtt-dot" title="MQTT connection"></span>
+  <span class="fps-label" id="fps-label">-- fps</span>
+</nav>
+
+<div class="main-grid">
+
+  <div class="video-panel">
+    <span class="live-chip">LIVE ● YOLOv8</span>
+    <img src="/video_feed" alt="Live classroom detection feed">
+  </div>
+
+  <div class="stats-panel">
+
+    <div class="gauge-card">
+      <div class="gauge-value idle" id="gauge-value">--</div>
+      <div class="gauge-label">Class Attention Score</div>
+      <div class="gauge-bar">
+        <div class="gauge-fill" id="gauge-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="breakdown-card">
+      <div class="card-header">Detection Breakdown</div>
+      <div class="breakdown-grid">
+        <div class="bd-item att">
+          <div class="bd-dot"></div>
+          <div>
+            <div class="bd-count" id="cnt-att">0</div>
+            <div class="bd-name">Attentive</div>
+          </div>
+        </div>
+        <div class="bd-item dis">
+          <div class="bd-dot"></div>
+          <div>
+            <div class="bd-count" id="cnt-dis">0</div>
+            <div class="bd-name">Distracted</div>
+          </div>
+        </div>
+        <div class="bd-item slp">
+          <div class="bd-dot"></div>
+          <div>
+            <div class="bd-count" id="cnt-slp">0</div>
+            <div class="bd-name">Sleeping</div>
+          </div>
+        </div>
+        <div class="bd-item phn">
+          <div class="bd-dot"></div>
+          <div>
+            <div class="bd-count" id="cnt-phn">0</div>
+            <div class="bd-name">Phone Use</div>
+          </div>
+        </div>
+      </div>
+      <div class="bd-total" id="cnt-total">No students detected</div>
+    </div>
+
+    <div class="students-card">
+      <div class="card-header">Per-Student Status</div>
+      <div class="students-list" id="students-list">
+        <div class="empty-msg">Waiting for detection…</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="bottom-grid">
+
+
+  <div class="chart-card">
+    <div class="card-header">Attention Timeline — last 5 min</div>
+    <div class="chart-wrap">
+      <canvas id="timeline-chart"></canvas>
+    </div>
+  </div>
+
+  <div class="alert-card">
+    <div class="card-header">Alert Log</div>
+    <div class="alert-list" id="alert-list">
+      <div class="empty-msg">No alerts yet</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>
