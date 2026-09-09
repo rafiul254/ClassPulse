@@ -10,20 +10,47 @@
 [![ESP32](https://img.shields.io/badge/ESP32-PlatformIO-E7352C?style=for-the-badge&logo=espressif&logoColor=white)](https://platformio.org)
 [![MQTT](https://img.shields.io/badge/MQTT-Mosquitto-660066?style=for-the-badge&logo=eclipsemosquitto&logoColor=white)](https://mosquitto.org)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.8+-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white)](https://opencv.org)
-[![SQLite](https://img.shields.io/badge/SQLite-Database-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org)
 [![License](https://img.shields.io/badge/License-MIT-00d4ff?style=for-the-badge)](LICENSE)
 
 <br/>
 
-> **ClassPulse** is an AI-powered real-time classroom attention monitoring system that uses **YOLOv8 Pose Estimation** to analyze student engagement levels — detecting attentive, distracted, sleeping, and phone-using students — and delivers instant feedback through a **live web dashboard** and **ESP32 IoT hardware alerts**.
-
-<br/>
-
-<img src="https://img.shields.io/badge/status-active-00d4ff?style=flat-square"/>
-<img src="https://img.shields.io/badge/models-YOLOv8n--pose%20%7C%20YOLOv8n-8b5cf6?style=flat-square"/>
-<img src="https://img.shields.io/badge/IoT-ESP32%20%2B%20RGB%20LED%20%2B%20Buzzer-E7352C?style=flat-square"/>
+> **ClassPulse** is an AI-powered real-time classroom attention monitoring system that uses **YOLOv8 Pose Estimation** to detect attentive, distracted, sleeping, and phone-using students — delivering instant feedback through a live web dashboard and **ESP32 IoT hardware alerts**.
 
 </div>
+
+---
+
+## 🎬 Demo
+
+### Live Dashboard
+![ClassPulse Dashboard](assets/dashboard.png)
+
+### Detection in Action
+<p align="center">
+  <img src="assets/detection1.png" width="48%" />
+  &nbsp;
+  <img src="assets/detection2.png" width="48%" />
+</p>
+
+<p align="center">
+  <em>Left: Full detection mode &nbsp;|&nbsp; Right: serial monitor detection</em>
+</p>
+
+
+### Session Report
+![ClassPulse Report](assets/report.png)
+
+### 🔌ESP32 Hardware
+
+<p align="center">
+  <img src="assets/hardware1.jpg" width="48%" />
+  &nbsp;
+  <img src="assets/hardware2.jpg" width="48%" />
+</p>
+
+<p align="center">
+  <em>Left: Full breadboard wiring &nbsp;|&nbsp; Right: RGB LED closeup</em>
+</p>
 
 ---
 
@@ -38,23 +65,20 @@
 - [Getting Started](#-getting-started)
 - [Configuration](#-configuration)
 - [How It Works](#-how-it-works)
-- [Dashboard Preview](#-dashboard-preview)
 - [MQTT Topics](#-mqtt-topics)
 - [ESP32 Behaviour](#-esp32-behaviour)
-- [Attention Scoring](#-attention-scoring)
-- [Contributing](#-contributing)
+- [Troubleshooting](#-troubleshooting)
 - [Author](#-author)
 
 ---
 
 ## 🎯 Overview
 
-ClassPulse addresses a real problem in modern education — **teachers have no scalable way to know if students are actually paying attention** during a lecture. This system uses a single webcam, AI pose estimation, and IoT hardware to give teachers instant, data-driven attention feedback without any wearables or student-side hardware.
+ClassPulse addresses a real problem in modern education — teachers have no scalable way to know if students are paying attention. This system uses a single webcam, AI pose estimation, and IoT hardware to give teachers instant, data-driven attention feedback without any wearables or student-side hardware.
 
 **What makes it different:**
-
 - No special student hardware — just a camera
-- Works with any laptop webcam (no GPU required, GPU supported)
+- Works with any laptop webcam (GPU supported, CPU fallback)
 - Real-time per-student attention scoring using head pose geometry
 - Physical IoT feedback — RGB LED + buzzer on teacher's desk
 - Session reports with exportable CSV data
@@ -87,33 +111,32 @@ ClassPulse addresses a real problem in modern education — **teachers have no s
 │  [Laptop Camera]                                                │
 │       │                                                         │
 │       ▼                                                         │
-│  ┌─────────────────────────────┐                               │
-│  │     detector.py (Thread)    │                               │
-│  │  YOLOv8-pose  ──────────── 17 keypoints per student        │
-│  │  YOLOv8n      ──────────── phone detection (class 67)      │
-│  │  attention.py ──────────── head pose + eye state → score   │
-│  └──────────────┬──────────────┘                               │
+│  ┌─────────────────────────────┐                                │
+│  │     detector.py (Thread)    │                                │
+│  │  YOLOv8-pose  ──────────── 17 keypoints per student          │
+│  │  YOLOv8n      ──────────── phone detection (class 67)        │
+│  │  attention.py ──────────── head pose + eye state → score     │
+│  └──────────────┬──────────────┘                                │
 │                 │                                               │
 │          ┌──────┴──────┐                                        │
 │          ▼             ▼                                        │
 │     database.py    mqtt_handler.py                              │
 │     (SQLite)       (Mosquitto)                                  │
-│          │             │                                        │
 │          └──────┬───────┘                                       │
 │                 ▼                                               │
 │            app.py (Flask)                                       │
-│       ┌─────────────────────┐                                  │
-│       │  /video_feed MJPEG  │ ──► Browser Dashboard            │
-│       │  /stream  SSE       │ ──► Live Chart.js updates        │
-│       │  /report  HTML      │ ──► Session report + CSV         │
-│       └─────────────────────┘                                  │
+│       ┌─────────────────────┐                                   │
+│       │  /video_feed MJPEG  │──► Browser Dashboard              │
+│       │  /stream  SSE       │──► Live Chart.js updates          │
+│       │  /report  HTML      │──► Session report + CSV           │
+│       └─────────────────────┘                                   │
 │                 │                                               │
-│          MQTT broker                                            │
+│          MQTT Broker                                            │
 │                 │                                               │
 │          ┌──────▼──────┐                                        │
 │          │   ESP32     │                                        │
-│          │  RGB LED    │ Green / Blue blink / Red / Purple     │
-│          │  Buzzer     │ Tones based on attention level        │
+│          │  RGB LED    │ Green/Blue blink/Red/Purple            │
+│          │  Buzzer     │ Tones based on attention level         │
 │          └─────────────┘                                        │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -122,35 +145,17 @@ ClassPulse addresses a real problem in modern education — **teachers have no s
 
 ## 🛠️ Tech Stack
 
-**Python Backend**
-
-| Library | Version | Purpose |
+| Layer | Library/Tool | Purpose |
 |---|---|---|
-| `ultralytics` | ≥8.0 | YOLOv8 pose + object detection |
-| `opencv-python` | ≥4.8 | Camera capture + frame annotation |
-| `flask` | ≥3.0 | Web server, MJPEG stream, SSE, REST API |
-| `paho-mqtt` | ≥1.6 | MQTT publisher to ESP32 |
-| `numpy` | ≥1.24 | Keypoint geometry calculations |
-| `pandas` | ≥2.0 | Session data processing |
-| `torch` | ≥2.0 | YOLOv8 backend (CUDA or CPU) |
-
-**Frontend**
-
-| Tool | Purpose |
-|---|---|
-| `Chart.js 4.4` | Real-time timeline + donut charts |
-| `Vanilla JS` | SSE listener, session controls |
-| `CSS Variables` | Dark cyberpunk design system |
-
-**Embedded / IoT**
-
-| Tool | Purpose |
-|---|---|
-| `ESP32` | WiFi-enabled microcontroller |
-| `PlatformIO` | ESP32 build + upload |
-| `PubSubClient` | MQTT subscriber on ESP32 |
-| `ArduinoJson` | JSON parsing on ESP32 |
-| `Mosquitto` | MQTT broker (localhost) |
+| Detection | `ultralytics` YOLOv8 | Pose + object detection |
+| Vision | `opencv-python` | Camera capture + annotation |
+| Web | `flask` | Server, MJPEG, SSE, REST |
+| IoT comms | `paho-mqtt` | MQTT publisher |
+| Data | `numpy`, `pandas` | Geometry + processing |
+| Storage | `SQLite` | Session + log database |
+| Frontend | `Chart.js 4.4` | Real-time timeline charts |
+| Embedded | `ESP32 + PlatformIO` | IoT feedback node |
+| Broker | `Mosquitto` | MQTT message broker |
 
 ---
 
@@ -159,16 +164,15 @@ ClassPulse addresses a real problem in modern education — **teachers have no s
 | Component | Qty | Notes |
 |---|---|---|
 | ESP32 Dev Board | 1 | Any variant |
-| RGB LED (4-pin) | 1 | Common Cathode preferred |
-| 220Ω Resistors | 3 | One per R/G/B pin |
-| Passive Buzzer | 1 | 2-pin, needs PWM signal |
+| RGB LED (4-pin) | 1 | Common Cathode |
+| 220Ω Resistors | 3 | One per R/G/B channel |
+| Passive Buzzer | 1 | 2-pin, needs PWM |
 | Breadboard | 1 | Half-size or larger |
 | Jumper Wires | ~15 | Male-to-male |
-| USB Cable | 1 | For ESP32 power + flashing |
+| USB Cable | 1 | ESP32 power + flash |
 | Laptop + Webcam | 1 | Built-in camera works |
 
 **Wiring — RGB LED (Common Cathode):**
-
 ```
 ESP32 GPIO 25  →  220Ω  →  LED Red pin   (Pin 1)
 ESP32 GPIO 26  →  220Ω  →  LED Green pin (Pin 3)
@@ -177,13 +181,12 @@ LED Common GND (Pin 2, longest leg)  →  GND rail
 ```
 
 **Wiring — Passive Buzzer:**
-
 ```
 ESP32 GPIO 18  →  Buzzer + leg
 GND rail       →  Buzzer − leg
 ```
 
-> ⚠️ **How to wire resistors:** GPIO pin → resistor leg 1 → resistor leg 2 → LED colour pin. The resistor sits between the ESP32 and the LED on the breadboard row.
+> **How to wire a resistor:** GPIO pin → resistor leg 1 → resistor leg 2 → LED colour pin. The resistor sits between GPIO and LED on the same breadboard row.
 
 ---
 
@@ -191,200 +194,160 @@ GND rail       →  Buzzer − leg
 
 ```
 ClassPulse/
+├── app.py                  # Flask entry point — run this
+├── detector.py             # YOLOv8 background detection thread
+├── attention.py            # Head pose + eye state → score
+├── database.py             # SQLite session & log manager
+├── mqtt_handler.py         # MQTT publisher
+├── config.py               # All settings in one place
+├── requirements.txt
 │
-├── 📄 app.py                         # Flask entry point — run this
-├── 📄 detector.py                    # YOLOv8 background detection thread
-├── 📄 attention.py                   # Head pose + eye state → attention score
-├── 📄 database.py                    # SQLite session & log manager
-├── 📄 mqtt_handler.py                # MQTT publisher (stats + alerts)
-├── 📄 config.py                      # All settings in one place
-├── 📄 requirements.txt
+├── templates/
+│   ├── index.html          # Live dashboard UI
+│   └── report.html         # Session report with charts
 │
-├── 📁 templates/
-│   ├── index.html                    # Live dashboard UI
-│   └── report.html                   # Session report with charts
+├── static/
+│   ├── css/style.css       # Dark cyberpunk design system
+│   └── js/dashboard.js     # SSE listener + Chart.js
 │
-├── 📁 static/
-│   ├── css/style.css                 # Dark cyberpunk design system
-│   └── js/dashboard.js              # SSE listener + Chart.js updates
-│
-├── 📁 esp32/
+├── esp32/
 │   └── platformio_project/
-│       ├── platformio.ini            # Board config + auto-install libs
-│       └── src/main.cpp              # ESP32 firmware (RGB + buzzer)
+│       ├── platformio.ini
+│       └── src/main.cpp    # ESP32 firmware
 │
-├── 📁 sessions/                      # Auto-created — SQLite DB lives here
-├── 📁 reports/                       # Auto-created — exported CSVs
+├── assets/                 # Screenshots for this README
+│   ├── dashboard.png
+│   ├── detection.png
+│   ├── report.png
+│   └── hardware.jpg
 │
-├── 📄 .gitignore
-└── 📄 README.md
+├── sessions/               # Auto-created — SQLite DB
+├── reports/                # Auto-created — CSV exports
+├── .gitignore
+└── README.md
 ```
 
 ---
 
 ## 🚀 Getting Started
 
-### Prerequisites
-
-- Python 3.10+
-- Node.js (for Node-RED, optional)
-- [Mosquitto MQTT Broker](https://mosquitto.org/download/)
-- VS Code + PlatformIO extension
-- PyCharm Community (recommended for Python)
-
----
-
-### 1. Clone the Repository
+### 1. Clone
 
 ```bash
 git clone https://github.com/rafiul254/ClassPulse.git
 cd ClassPulse
 ```
 
-### 2. Install Python Dependencies
+### 2. Install Python dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-> YOLOv8 models (`yolov8n-pose.pt` and `yolov8n.pt`) download automatically on first run (~20 MB total).
+> YOLOv8 models download automatically on first run (~20 MB).
 
-### 3. Configure Mosquitto
+### 3. Start Mosquitto broker
 
-Open `C:\Program Files\mosquitto\mosquitto.conf` and add:
+```bash
+# Windows (run as Administrator)
+net start mosquitto
+```
 
+Open `C:\Program Files\mosquitto\mosquitto.conf` and ensure:
 ```
 listener 1883
 allow_anonymous true
 ```
 
-Restart the Mosquitto service.
-
-### 4. Configure the Project
-
-Edit `config.py`:
-
-```python
-CAMERA_INDEX = 0          # 0 = built-in laptop camera
-DEVICE       = '0'        # '0' = GPU  |  'cpu' = CPU only
-MQTT_BROKER  = 'localhost'
+Allow port 1883 through Windows Firewall:
+```bash
+netsh advfirewall firewall add rule name="Mosquitto MQTT" dir=in action=allow protocol=TCP localport=1883
 ```
 
-### 5. Flash the ESP32
+### 4. Configure ESP32
 
-Open `esp32/platformio_project/` in VS Code, edit `src/main.cpp`:
-
+Open `esp32/platformio_project/src/main.cpp`, edit the config block:
 ```cpp
-#define WIFI_SSID      "YourWiFiName"
-#define WIFI_PASSWORD  "YourWiFiPassword"
-#define MQTT_BROKER    "192.168.X.X"   // your PC's local IP (ipconfig)
+#define WIFI_SSID      "YourWiFiName"     // must be 2.4 GHz
+#define WIFI_PASSWORD  "YourPassword"
+#define MQTT_BROKER    "192.168.X.X"      // your PC's IP (ipconfig)
 ```
 
-Then: **✓ Build → → Upload → 🔌 Serial Monitor (115200)**
+Build and upload via VS Code PlatformIO: **✓ Build → → Upload**
 
-### 6. Run ClassPulse
+### 5. Run
 
 ```bash
 python app.py
 ```
 
-Open browser: **http://localhost:5000**
+Open: **http://localhost:5000**
 
 ---
 
 ## ⚙️ Configuration
 
-All settings live in `config.py`:
+All tuning constants live in `config.py`:
 
 ```python
-# Detection tuning
 CONF_THRESHOLD      = 0.50   # keypoint confidence gate
-YAW_DISTRACTED_DEG  = 25     # head turn angle → DISTRACTED
-YAW_AWAY_DEG        = 50     # head turn angle → fully sideways
-PITCH_SLEEPING_DEG  = 30     # chin drop angle → SLEEPING
+YAW_DISTRACTED_DEG  = 25     # head turn → DISTRACTED
+YAW_AWAY_DEG        = 50     # head turn → fully sideways
+PITCH_SLEEPING_DEG  = 30     # chin drop → SLEEPING
 EAR_CLOSED_FRAMES   = 8      # consecutive closed-eye frames → SLEEPING
-
-# Alert thresholds
 ATTENTION_THRESHOLD = 60     # class avg below this → alert fires
 ALERT_COOLDOWN      = 30     # seconds between repeat alerts
-LOG_INTERVAL        = 5      # seconds between SQLite writes
 ```
 
 ---
 
 ## 🧠 How It Works
 
-### Attention Scoring Algorithm
-
-Each detected student gets a score from **0 to 100** based on:
+### Attention Scoring
 
 ```
-Step 1 — Camera quality gate
-  If best face keypoint confidence < 22% → score 10, state UNCERTAIN
+Camera quality gate → max face conf < 22% → UNCERTAIN (score 10)
 
-Step 2 — Head yaw (left-right rotation)
-  |yaw| < 25°  → +45 pts  (facing camera)
-  |yaw| < 50°  → +20 pts  (slightly turned)
-  |yaw| ≥ 50°  →  +0 pts  (fully sideways)
+Head yaw (left-right):
+  |yaw| < 25°  → +45 pts  (camera-facing)
+  |yaw| < 50°  → +20 pts  (partial turn)
+  |yaw| ≥ 50°  →  +0 pts  (sideways)
 
-Step 3 — Head pitch (up-down tilt)
-  pitch < -30° → cap score at 12 (head dropped / sleeping)
+Head pitch (down):
+  pitch < -30° → cap at 12 (sleeping)
 
-Step 4 — Eye state
-  Eyes open    → +20 pts
-  Eyes closed  → no bonus
-  Closed ≥ 8 consecutive frames → cap at 12 (SLEEPING)
+Eye state:
+  Open         → +20 pts
+  Closed ≥ 8 frames → cap at 12 (SLEEPING)
 
-Step 5 — Confidence scaling
-  avg_face_conf maps [0.35 → 1.0] to scale [0.5 → 1.0]
-  Low-light camera = score scaled down automatically
+Confidence scaling:
+  avg_conf [0.35→1.0] → scale [0.5→1.0]
 
-Step 6 — Phone penalty
-  Phone detected near person → hard cap score at 25
+Phone nearby → hard cap at 25, state = PHONE
 ```
 
 ### State Classification
 
-| Score | State | Condition Override |
-|---|---|---|
-| 65–100 | 🟢 ATTENTIVE | — |
-| 30–64 | 🟡 DISTRACTED | or \|yaw\| > 50° |
-| 0–29 | 🔴 SLEEPING | or pitch < -30° or eye streak ≥ 8 |
-| any | 📱 PHONE | phone detected nearby |
-| any | ⚪ UNCERTAIN | camera too dark |
-
----
-
-## 📊 Dashboard Preview
-
-**Live Dashboard** — `http://localhost:5000`
-- Left panel: annotated live camera feed (MJPEG stream)
-- Right panel: class attention gauge, per-student rows, breakdown counts
-- Bottom: 5-minute attention timeline chart + alert log
-
-**Session Report** — `http://localhost:5000/report/<id>`
-- KPI cards: avg attention, data points, time attentive %, time struggling %
-- Full timeline chart with alert threshold line
-- State distribution donut chart
-- Alert log table
-- CSV export button
+| Score | State |
+|---|---|
+| 65–100 | 🟢 ATTENTIVE |
+| 30–64 | 🟡 DISTRACTED |
+| 0–29 | 🔴 SLEEPING |
+| any | 📱 PHONE |
+| any | ⚪ UNCERTAIN |
 
 ---
 
 ## 📡 MQTT Topics
 
-| Topic | Direction | Payload |
-|---|---|---|
-| `classpulse/stats` | Python → ESP32 | `{"class_attention": 72, "total_students": 5, "attentive": 3, ...}` |
-| `classpulse/alert` | Python → ESP32 | `{"level": "danger", "message": "Attention dropped to 28%"}` |
+| Topic | Payload |
+|---|---|
+| `classpulse/stats` | `{"class_attention": 72, "total_students": 5, ...}` |
+| `classpulse/alert` | `{"level": "danger", "message": "Attention dropped..."}` |
 
-**Test without Python running:**
-
+**Test manually:**
 ```bash
-# Simulate good attention
 mosquitto_pub -h localhost -t "classpulse/stats" -m "{\"class_attention\":85}"
-
-# Simulate danger alert
 mosquitto_pub -h localhost -t "classpulse/alert" -m "{\"level\":\"danger\",\"message\":\"Test\"}"
 ```
 
@@ -392,16 +355,16 @@ mosquitto_pub -h localhost -t "classpulse/alert" -m "{\"level\":\"danger\",\"mes
 
 ## 💡 ESP32 Behaviour
 
-| Attention % | RGB LED | Buzzer |
+| State | RGB LED | Buzzer |
 |---|---|---|
-| Boot | White sweep → R → G → B | Ascending C-E-G-C melody |
+| Boot | White sweep → R → G → B | C-E-G-C melody |
 | WiFi connecting | Yellow blink | — |
 | MQTT connected | Cyan double flash | Double beep |
-| ≥ 70% | 🟢 Solid Green | Silent |
-| 45–69% | 🔵 Slow Blue blink | Silent |
-| < 45% | 🔴 Solid Red | Single warn beep |
-| Alert warning | 💜 Purple flash ×2 | Double warn beep |
-| Alert danger | 💜 Purple flash ×4 | Triple alarm |
+| Attention ≥ 70% | 🟢 Solid Green | Silent |
+| Attention 45–69% | 🔵 Blue blink | Silent |
+| Attention < 45% | 🔴 Solid Red | Warn beep |
+| Alert warning | 💜 Purple ×2 | Double warn |
+| Alert danger | 💜 Purple ×4 | Triple alarm |
 
 ---
 
@@ -410,24 +373,17 @@ mosquitto_pub -h localhost -t "classpulse/alert" -m "{\"level\":\"danger\",\"mes
 | Problem | Fix |
 |---|---|
 | Camera not found | Change `CAMERA_INDEX = 1` in `config.py` |
-| YOLO too slow | Set `DEVICE = 'cpu'` or use `yolov8n-pose` (already nano) |
-| MQTT not connecting | Check Mosquitto is running, verify broker IP |
-| ESP32 won't connect to WiFi | Ensure 2.4 GHz network (ESP32 doesn't support 5 GHz) |
-| Score always high (dark room) | Lower `MIN_FACE_CONF = 0.35` in `attention.py` |
-| Too many false SLEEPING | Increase `EAR_CLOSED_FRAMES = 12` in `attention.py` |
-| RGB LED wrong colour | Check Common Cathode vs Anode — swap logic if needed |
+| MQTT `rc=-2` | Open port 1883 in Windows Firewall |
+| ESP32 won't connect | WiFi must be **2.4 GHz** — ESP32 doesn't support 5 GHz |
+| Score always high | Lower `MIN_FACE_CONF` in `attention.py` |
+| Too many false SLEEPING | Increase `EAR_CLOSED_FRAMES` to 12+ |
 
 ---
 
-## 🤝 Contributing
+## 📝 Medium Article
 
-Pull requests are welcome. For major changes, open an issue first.
-
-```bash
-git checkout -b feature/your-feature
-git commit -m "feat: add your feature"
-git push origin feature/your-feature
-```
+Full technical deep-dive on Medium:
+**[ClassPulse: I Built an AI That Detects If Students Are Sleeping in Class](https://rafiulislam25.medium.com/classpulse-i-built-an-ai-power-system-that-detects-if-students-are-sleeping-in-class-6cba2f8d9c5c?sharedUserId=rafiulislam25)**
 
 ---
 
@@ -439,10 +395,10 @@ git push origin feature/your-feature
 
 B.Sc. in IoT & Robotics Engineering — University of Frontier Technology, Bangladesh
 
-
 [![YouTube](https://img.shields.io/badge/@PinToCloud-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtube.com/@PinToCloud)
 [![GitHub](https://img.shields.io/badge/rafiul254-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/rafiul254)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/rafiul-islam-25sep92004)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/rafiul-islam-25sep92004)
+[![Medium](https://img.shields.io/badge/Medium-12100E?style=for-the-badge&logo=medium&logoColor=white)](https://medium.com/@rafiulislam25)
 
 </div>
 
@@ -450,9 +406,9 @@ B.Sc. in IoT & Robotics Engineering — University of Frontier Technology, Bangl
 
 <div align="center">
 
-**Built with 💜 using YOLOv8 + OpenCv + Flask + ESP32**
+**Built with using YOLOv8 + Flask + ESP32**
 
-*If this project helped you, consider giving it a ⭐*
+*If this project helped you, please give it a ⭐*
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:8b5cf6,100:00d4ff&height=100&section=footer" width="100%"/>
 
